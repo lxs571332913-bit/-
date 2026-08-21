@@ -1,7 +1,7 @@
 {
+  "nodeVersion": "22.x",
   "functions": {
     "api/[...path].js": {
-      "runtime": "nodejs22.x",
       "maxDuration": 30
     }
   }
