@@ -325,4 +325,30 @@ h1 { font-size: 23px; font-weight: 700; letter-spacing: 0.5px; }
   border: none; background: transparent;
   color: var(--text-2); font-size: 12px;
   cursor: pointer;
+}/* ===== 确认弹窗 ===== */
+.modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; }
+.modal-mask { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.4); }
+.modal-card {
+  position: relative;
+  width: min(300px, calc(100vw - 48px));
+  background: var(--card);
+  border-radius: 16px;
+  padding: 22px 20px 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  animation: modal-pop 0.18s ease;
 }
+@keyframes modal-pop {
+  from { transform: scale(0.94); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.modal-text { font-size: 15px; line-height: 1.7; color: var(--text); text-align: center; word-break: break-all; }
+.modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+.modal-btn {
+  flex: 1; border: none; cursor: pointer;
+  font-size: 15px; font-weight: 600;
+  padding: 11px 0; border-radius: 12px;
+  background: var(--bar-bg); color: var(--text);
+  transition: background 0.15s ease;
+}
+.modal-btn.primary { background: var(--danger); color: #fff; }
+.modal-btn:active { opacity: 0.8; }

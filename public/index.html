@@ -90,6 +90,18 @@
     </footer>
   </div>
 
+  <!-- 确认弹窗（手机浏览器禁用 window.confirm，用网页内弹窗替代） -->
+  <div id="confirmModal" class="modal hidden">
+    <div class="modal-mask"></div>
+    <div class="modal-card">
+      <p id="confirmText" class="modal-text"></p>
+      <div class="modal-actions">
+        <button id="confirmCancel" class="modal-btn" type="button">取消</button>
+        <button id="confirmOk" class="modal-btn primary" type="button">删除</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status"></div>
   <script src="app.js"></script>
 </body>

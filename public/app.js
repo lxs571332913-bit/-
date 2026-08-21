@@ -26,6 +26,10 @@ const aiBtn = $('#aiBtn');
 const aiSummaryBox = $('#aiSummaryBox');
 const aiSummary = $('#aiSummary');
 const aiClose = $('#aiClose');
+const confirmModal = $('#confirmModal');
+const confirmText = $('#confirmText');
+const confirmOk = $('#confirmOk');
+const confirmCancel = $('#confirmCancel');
 
 const weekNames = ['日', '一', '二', '三', '四', '五', '六'];
 const TOKEN_KEY = 'habit-token';
@@ -203,7 +207,7 @@ function startRename(li, id) {
 async function confirmDelete(id) {
   const habit = habits.find((x) => x.id === id);
   if (!habit) return;
-  if (!window.confirm('确定删除「' + habit.name + '」吗？\n它的打卡历史也会一并清除。')) return;
+  if (!(await askConfirm('确定删除「' + habit.name + '」吗？\n它的打卡历史也会一并清除。'))) return;
   try {
     await api('/api/habits/' + id, { method: 'DELETE' });
     habits = habits.filter((x) => x.id !== id);
@@ -236,7 +240,25 @@ addForm.addEventListener('submit', async (e) => {
   } catch (err) {
     showToast(err.message);
   }
-});/* ---- 登录 / 注册 ---- */
+});/* ---- 确认弹窗（替代 window.confirm，兼容手机浏览器） ---- */
+let confirmResolve = null;
+function askConfirm(message) {
+  return new Promise((resolve) => {
+    confirmResolve = resolve;
+    confirmText.textContent = message;
+    confirmModal.classList.remove('hidden');
+  });
+}
+confirmOk.addEventListener('click', () => {
+  confirmModal.classList.add('hidden');
+  if (confirmResolve) { const r = confirmResolve; confirmResolve = null; r(true); }
+});
+confirmCancel.addEventListener('click', () => {
+  confirmModal.classList.add('hidden');
+  if (confirmResolve) { const r = confirmResolve; confirmResolve = null; r(false); }
+});
+
+/* ---- 登录 / 注册 ---- */
 tabLogin.addEventListener('click', () => setAuthMode('login'));
 tabRegister.addEventListener('click', () => setAuthMode('register'));
 
