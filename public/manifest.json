@@ -1,0 +1,14 @@
+{
+  "name": "习惯打卡",
+  "short_name": "习惯打卡",
+  "description": "每天打卡，坚持你的好习惯",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f6f8",
+  "theme_color": "#2bb3a3",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

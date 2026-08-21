@@ -1,0 +1,19 @@
+# Render 免费部署配置
+services:
+  - type: web
+    name: habit-tracker
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/info
+    envVars:
+      - key: PORT
+        value: 10000
+      # 以下三项在 Render 后台手动填写（见 README）
+      - key: TURSO_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false

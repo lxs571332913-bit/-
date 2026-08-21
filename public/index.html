@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>习惯打卡</title>
+  <meta name="theme-color" content="#2bb3a3">
+  <meta name="description" content="每天打卡，坚持你的好习惯">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%232bb3a3'/%3E%3Cpath d='M28 52 L44 66 L74 34' stroke='white' stroke-width='11' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 登录 / 注册 -->
+  <div id="authView" class="wrap auth-wrap hidden">
+    <div class="auth-card">
+      <div class="auth-brand"><span class="auth-check">&#10003;</span>习惯打卡</div>
+      <p class="auth-sub">每天打卡，坚持你的好习惯</p>
+      <div class="auth-tabs">
+        <button id="tabLogin" class="auth-tab active" type="button">登录</button>
+        <button id="tabRegister" class="auth-tab" type="button">注册</button>
+      </div>
+      <form id="authForm" autocomplete="off">
+        <input id="authUsername" type="text" maxlength="20" placeholder="用户名" autocomplete="username">
+        <input id="authPassword" type="password" maxlength="64" placeholder="密码（至少 6 位）" autocomplete="current-password">
+        <p id="authError" class="auth-error" role="alert"></p>
+        <button type="submit" id="authSubmit" class="auth-submit">登 录</button>
+      </form>
+    </div>
+  </div>  <!-- 主界面 -->
+  <div id="appView" class="wrap hidden">
+    <header>
+      <div class="header-top">
+        <h1 id="dateTitle">今日打卡</h1>
+        <div class="header-actions">
+          <button id="logoutBtn" class="icon-btn header-btn" title="退出登录" aria-label="退出登录">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          </button>
+          <button id="themeToggle" class="theme-btn" aria-label="切换明暗主题" title="切换明暗主题">
+            <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          </button>
+        </div>
+      </div>
+      <p class="date-line" id="dateLine"></p>
+
+      <div class="progress-card">
+        <div class="progress-head">
+          <span class="progress-num"><b id="doneCount">0</b><i>/</i><b id="totalCount">0</b></span>
+          <span class="progress-label">今日完成</span>
+        </div>
+        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+      </div>
+    </header>
+
+    <main>
+      <ul id="habitList" class="habit-list"></ul>
+      <div id="emptyHint" class="empty-hint hidden">还没有习惯<br>先添加一个想坚持的小目标吧</div>
+
+      <form id="addForm" class="add-form" autocomplete="off">
+        <input id="addInput" type="text" maxlength="30" placeholder="添加新习惯，如：早睡早起" aria-label="新习惯名称">
+        <button type="submit" class="add-btn">添加</button>
+      </form>
+
+      <section class="stats">
+        <div class="streak-card">
+          <span class="streak-num" id="streakNum">0</span>
+          <span class="streak-label">连续完成天数</span>
+        </div>
+        <div class="week-card">
+          <div class="week-title">最近 7 天</div>
+          <div id="weekHistory" class="week-history"></div>
+        </div>
+      </section>
+
+      <div class="ai-area">
+        <button id="aiBtn" class="ai-btn" type="button">✨ 本周总结</button>
+        <div id="aiSummaryBox" class="ai-summary hidden">
+          <p id="aiSummary" class="ai-text"></p>
+          <button id="aiClose" class="ai-close" type="button">收起</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <p class="lan-hint">手机访问：<span id="lanUrl" class="lan-url">—</span></p>
+      <p class="foot-note">数据按账号独立保存</p>
+    </footer>
+  </div>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
