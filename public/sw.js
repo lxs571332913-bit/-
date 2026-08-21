@@ -1,5 +1,5 @@
 /* 习惯打卡 · 离线壳 */
-const CACHE = 'habit-tracker-v2';
+const CACHE = 'habit-tracker-v3';
 const APP_SHELL = ['./', './style.css', './app.js', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', (e) => {
