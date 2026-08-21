@@ -499,12 +499,13 @@ async function startLocalServer() {
     console.log('  按 Ctrl+C 停止服务。');
     console.log('');
     if (OPEN_BROWSER) {
+      // 仅在本机有图形界面时打开浏览器；云服务器（如 Zeabur）上静默失败，不影响服务
       const url = `http://localhost:${PORT}`;
-      if (process.platform === 'win32') {
-        spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore' }).unref();
-      } else {
-        spawn('xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
-      }
+      const child = process.platform === 'win32'
+        ? spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore' })
+        : spawn('xdg-open', [url], { detached: true, stdio: 'ignore' });
+      child.on('error', () => {});
+      child.unref();
     }
   });
 }
