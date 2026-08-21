@@ -13,11 +13,21 @@
 </head>
 <body>
 
-  <!-- 登录 / 注册 -->
+  <!-- 登录 / 注册（未登录展示：公开首页 + 登录框） -->
   <div id="authView" class="wrap auth-wrap hidden">
+    <section class="landing" aria-label="习惯打卡介绍">
+      <div class="landing-badge"><span class="auth-check">&#10003;</span></div>
+      <h1 class="landing-title">习惯打卡</h1>
+      <p class="landing-sub">每天打卡，坚持你的好习惯</p>
+      <ul class="landing-features">
+        <li><span class="landing-tick">&#10003;</span>极简打卡，完成一项点一下</li>
+        <li><span class="landing-tick">&#10003;</span>连续天数，看见自己的坚持</li>
+        <li><span class="landing-tick">&#10003;</span>AI 周总结，每周一份鼓励</li>
+        <li><span class="landing-tick">&#10003;</span>云端保存，手机电脑随时同步</li>
+      </ul>
+      <button id="landingCta" class="landing-cta" type="button">开始使用</button>
+    </section>
     <div class="auth-card">
-      <div class="auth-brand"><span class="auth-check">&#10003;</span>习惯打卡</div>
-      <p class="auth-sub">每天打卡，坚持你的好习惯</p>
       <div class="auth-tabs">
         <button id="tabLogin" class="auth-tab active" type="button">登录</button>
         <button id="tabRegister" class="auth-tab" type="button">注册</button>
@@ -29,7 +39,10 @@
         <button type="submit" id="authSubmit" class="auth-submit">登 录</button>
       </form>
     </div>
-  </div>  <!-- 主界面 -->
+    <p class="landing-foot">免费使用 · 数据云端保存 · 手机电脑随时同步</p>
+  </div>
+
+  <!-- 主界面 -->
   <div id="appView" class="wrap hidden">
     <header>
       <div class="header-top">

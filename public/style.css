@@ -352,3 +352,19 @@ h1 { font-size: 23px; font-weight: 700; letter-spacing: 0.5px; }
 }
 .modal-btn.primary { background: var(--danger); color: #fff; }
 .modal-btn:active { opacity: 0.8; }
+/* ===== 公开首页（登录前展示） ===== */
+.landing { text-align: center; padding: 26px 0 28px; }
+.landing-badge .auth-check { width: 56px; height: 56px; font-size: 28px; box-shadow: 0 6px 18px rgba(43, 179, 163, 0.25); }
+.landing-title { font-size: 27px; font-weight: 700; letter-spacing: 1px; margin-top: 14px; }
+.landing-sub { color: var(--text-2); font-size: 15px; margin-top: 6px; }
+.landing-features { list-style: none; margin: 22px auto 0; padding: 0; width: 100%; max-width: 300px; text-align: left; }
+.landing-features li { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text); padding: 6px 0; }
+.landing-tick { color: var(--accent); font-weight: 700; font-size: 15px; flex: none; }
+.landing-cta {
+  margin-top: 22px; padding: 13px 40px; font-size: 16px; font-weight: 600;
+  color: #fff; background: var(--accent); border: none; border-radius: 999px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(43, 179, 163, 0.28);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.landing-cta:active { background: var(--accent-strong); transform: scale(0.97); }
+.landing-foot { text-align: center; color: var(--text-2); font-size: 12px; margin-top: 22px; }

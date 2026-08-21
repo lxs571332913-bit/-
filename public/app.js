@@ -328,6 +328,15 @@ function applyTheme(t) {
 applyTheme(theme);
 themeBtn.addEventListener('click', () => applyTheme(theme === 'dark' ? 'light' : 'dark'));
 
+
+/* ---- 公开首页：开始使用按钮 -> 滚动到登录框 ---- */
+const landingCta = $('#landingCta');
+landingCta.addEventListener('click', () => {
+  const card = document.querySelector('.auth-card');
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => authUsername.focus(), 400);
+});
+
 /* ---- 回到页面时自动刷新（覆盖跨天情况） ---- */
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !authView.classList.contains('hidden')) {
