@@ -148,7 +148,10 @@ async function loadAll() {
   renderHabits();
   renderStats();
   updateDate();
-  if (info && info.lanUrl) $('#lanUrl').textContent = info.lanUrl;
+  if (info && info.lanUrl) {
+    const u = info.publicUrl && !info.publicUrl.includes('localhost') ? info.publicUrl : info.lanUrl;
+    $('#lanUrl').textContent = u;
+  }
 }async function toggleHabit(id) {
   try {
     const res = await api('/api/habits/' + id + '/toggle', { method: 'POST' });

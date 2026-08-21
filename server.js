@@ -1,17 +1,16 @@
-// 习惯打卡 · 多用户在线版服务器
-// 本地模式（默认）：零依赖，node:http + node:sqlite，数据存 data/habits.db
-// 云模式：设置 TURSO_URL 与 TURSO_AUTH_TOKEN 后使用 Turso 云 SQLite（需 npm install @libsql/client）
+// 习惯打卡 · 多用户在线版（本地运行 + Vercel Serverless 双形态）
+// 本地模式：node server.js，零依赖（node:http + node:sqlite），数据存 data/habits.db
+// Vercel 模式：api/[...path].js 导入本文件导出的 handler；数据必须用 Turso（TURSO_URL + TURSO_AUTH_TOKEN）
 // AI 周总结：设置 DEEPSEEK_API_KEY（DeepSeek 开放平台）后可用
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { existsSync, mkdirSync, statSync } from 'node:fs';
-import { join, normalize, sep, dirname, extname } from 'node:path';
+import { join, normalize, sep, dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
 import crypto from 'node:crypto';
 import dgram from 'node:dgram';
-import { DatabaseSync } from 'node:sqlite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(__dirname, 'public');
@@ -22,40 +21,7 @@ const OPEN_BROWSER = !process.argv.includes('--no-open');
 const TURSO_URL = process.env.TURSO_URL || '';
 const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN || '';
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
-const USE_TURSO = !!(TURSO_URL && TURSO_AUTH_TOKEN);// ---------- 数据层（双模式） ----------
-let localDb = null;
-let tursoClient = null;
-if (USE_TURSO) {
-  const { createClient } = await import('@libsql/client');
-  tursoClient = createClient({ url: TURSO_URL, authToken: TURSO_AUTH_TOKEN });
-} else {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  localDb = new DatabaseSync(DB_PATH);
-  localDb.exec('PRAGMA foreign_keys = ON');
-}
-
-const db = {
-  async exec(sql) {
-    if (tursoClient) { await tursoClient.executeMultiple(sql); return; }
-    localDb.exec(sql);
-  },
-  async all(sql, args = []) {
-    if (tursoClient) return (await tursoClient.execute({ sql, args })).rows;
-    return localDb.prepare(sql).all(...args);
-  },
-  async get(sql, args = []) {
-    if (tursoClient) return (await tursoClient.execute({ sql, args })).rows[0];
-    return localDb.prepare(sql).get(...args);
-  },
-  async run(sql, args = []) {
-    if (tursoClient) {
-      const r = await tursoClient.execute({ sql, args });
-      return { changes: Number(r.rowsAffected || 0), lastInsertRowid: Number(r.lastInsertRowid || 0) };
-    }
-    const r = localDb.prepare(sql).run(...args);
-    return { changes: r.changes, lastInsertRowid: Number(r.lastInsertRowid) };
-  },
-};// ---------- 建表与旧库迁移 ----------
+const USE_TURSO = !!(TURSO_URL && TURSO_AUTH_TOKEN);// ---------- 建表 ----------
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,12 +53,51 @@ CREATE INDEX IF NOT EXISTS idx_checkins_date ON checkins(date);
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 `;
 
-await db.exec(SCHEMA);
-// 旧版本本地库迁移：habits 表没有 user_id 列时重建（旧测试数据丢弃）
-const habitTable = await db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='habits'");
-if (habitTable && habitTable.sql && !String(habitTable.sql).includes('user_id')) {
-  await db.exec('DROP TABLE IF EXISTS checkins; DROP TABLE IF EXISTS habits;');
-  await db.exec(SCHEMA);
+// ---------- 数据层（双模式，懒初始化，兼容 Serverless 冷启动） ----------
+let db = null;
+let initPromise = null;
+
+async function ensureDb() {
+  if (db) return;
+  if (!initPromise) {
+    initPromise = (async () => {
+      if (USE_TURSO) {
+        const { createClient } = await import('@libsql/client');
+        const client = createClient({ url: TURSO_URL, authToken: TURSO_AUTH_TOKEN });
+        db = {
+          exec: (sql) => client.executeMultiple(sql),
+          all: async (sql, args = []) => (await client.execute({ sql, args })).rows,
+          get: async (sql, args = []) => (await client.execute({ sql, args })).rows[0],
+          run: async (sql, args = []) => {
+            const r = await client.execute({ sql, args });
+            return { changes: Number(r.rowsAffected || 0), lastInsertRowid: Number(r.lastInsertRowid || 0) };
+          },
+        };
+      } else {
+        if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+        const { DatabaseSync } = await import('node:sqlite');
+        const raw = new DatabaseSync(DB_PATH);
+        raw.exec('PRAGMA foreign_keys = ON');
+        db = {
+          exec: (sql) => raw.exec(sql),
+          all: (sql, args = []) => raw.prepare(sql).all(...args),
+          get: (sql, args = []) => raw.prepare(sql).get(...args),
+          run: (sql, args = []) => {
+            const r = raw.prepare(sql).run(...args);
+            return { changes: r.changes, lastInsertRowid: Number(r.lastInsertRowid) };
+          },
+        };
+      }
+      await db.exec(SCHEMA);
+      // 旧版本本地库迁移：habits 表没有 user_id 列时重建（旧测试数据丢弃）
+      const habitTable = await db.get("SELECT sql FROM sqlite_master WHERE type='table' AND name='habits'");
+      if (habitTable && habitTable.sql && !String(habitTable.sql).includes('user_id')) {
+        await db.exec('DROP TABLE IF EXISTS checkins; DROP TABLE IF EXISTS habits;');
+        await db.exec(SCHEMA);
+      }
+    })();
+  }
+  await initPromise;
 }// ---------- 工具函数 ----------
 function fmtDate(d) {
   const y = d.getFullYear();
@@ -266,6 +271,8 @@ function readBody(req, limit = 20 * 1024) {
   });
 }// ---------- API 路由 ----------
 async function handleApi(req, res, path) {
+  await ensureDb();
+
   // 注册
   if (req.method === 'POST' && path === '/api/register') {
     let body;
@@ -309,17 +316,21 @@ async function handleApi(req, res, path) {
     const user = await getUserByToken(getToken(req));
     if (!user) return sendJSON(res, 401, { error: '请先登录' });
     return sendJSON(res, 200, user);
-  }  // 站点信息（公开，也用于 UptimeRobot 保活）
+  }
+
+  // 站点信息（公开，也用于 UptimeRobot 保活）
   if (req.method === 'GET' && path === '/api/info') {
     const lan = await getLanIP();
+    const proto = String(req.headers['x-forwarded-proto'] || 'http').split(',')[0].trim();
+    const host = req.headers.host || `localhost:${PORT}`;
     return sendJSON(res, 200, {
       port: PORT,
       lanUrl: `http://${lan}:${PORT}`,
       localUrl: `http://localhost:${PORT}`,
+      publicUrl: `${proto}://${host}`,
       mode: USE_TURSO ? 'cloud' : 'local',
     });
-  }
-  // 需要登录的接口：先校验登录态
+  }  // 需要登录的接口：先校验登录态
   const user = await getUserByToken(getToken(req));
   if (!user) return sendJSON(res, 401, { error: '请先登录' });
 
@@ -415,7 +426,7 @@ async function handleApi(req, res, path) {
   }
 
   sendJSON(res, 404, { error: '接口不存在' });
-}// ---------- 静态文件 ----------
+}// ---------- 静态文件（本地模式用；Vercel 上由平台直接托管 public/） ----------
 async function serveStatic(res, path) {
   if (path === '/favicon.ico') { res.writeHead(204); return res.end(); }
   let rel;
@@ -433,47 +444,75 @@ async function serveStatic(res, path) {
   res.end(content);
 }
 
-// ---------- 启动 ----------
-const server = createServer(async (req, res) => {
+// ---------- Vercel Serverless 入口 ----------
+export default async function vercelHandler(req, res) {
   try {
-    const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url.pathname);
-    await serveStatic(res, url.pathname);
+    if (!USE_TURSO) {
+      return sendJSON(res, 500, { error: 'Vercel 上必须配置 TURSO_URL 与 TURSO_AUTH_TOKEN（数据持久化需要）' });
+    }
+    const url = new URL(req.url || '/', 'http://localhost');
+    if (url.pathname.startsWith('/api/')) {
+      return await handleApi(req, res, url.pathname);
+    }
+    res.statusCode = 404;
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.end('Not Found');
   } catch (err) {
     if (!res.headersSent) sendJSON(res, 500, { error: '服务器内部错误' });
     console.error(err);
   }
-});
-
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error('');
-    console.error(`  [错误] 端口 ${PORT} 已被占用，无法启动服务。`);
-    console.error(`  请关闭占用该端口的程序后重试；`);
-    console.error(`  或换一个端口启动：先执行  set PORT=4322  再运行  node server.js`);
-    console.error('');
-  } else {
-    console.error(err);
-  }
-  process.exit(1);
-});
-
-server.listen(PORT, '0.0.0.0', async () => {
-  const lan = await getLanIP();
-  console.log('');
-  console.log('  ── 习惯打卡 · 多用户在线版 已启动 ──');
-  console.log(`  数据模式：${USE_TURSO ? 'Turso 云数据库' : '本地 SQLite（data/habits.db）'}`);
-  console.log(`  本机访问： http://localhost:${PORT}`);
-  console.log(`  局域网：  http://${lan}:${PORT}  （手机需连同一 Wi-Fi）`);
-  console.log(`  AI 周总结：${DEEPSEEK_API_KEY ? '已启用' : '未配置 DEEPSEEK_API_KEY（可后补）'}`);
-  console.log('  按 Ctrl+C 停止服务。');
-  console.log('');
-  if (OPEN_BROWSER) {
-    const url = `http://localhost:${PORT}`;
-    if (process.platform === 'win32') {
-      spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore' }).unref();
-    } else {
-      spawn('xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
+}// ---------- 本地运行入口：node server.js ----------
+async function startLocalServer() {
+  await ensureDb();
+  const server = createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      if (url.pathname.startsWith('/api/')) return await handleApi(req, res, url.pathname);
+      await serveStatic(res, url.pathname);
+    } catch (err) {
+      if (!res.headersSent) sendJSON(res, 500, { error: '服务器内部错误' });
+      console.error(err);
     }
-  }
-});
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error('');
+      console.error(`  [错误] 端口 ${PORT} 已被占用，无法启动服务。`);
+      console.error(`  请关闭占用该端口的程序后重试；`);
+      console.error(`  或换一个端口启动：先执行  set PORT=4322  再运行  node server.js`);
+      console.error('');
+    } else {
+      console.error(err);
+    }
+    process.exit(1);
+  });
+
+  server.listen(PORT, '0.0.0.0', async () => {
+    const lan = await getLanIP();
+    console.log('');
+    console.log('  ── 习惯打卡 · 多用户在线版 已启动（本地模式） ──');
+    console.log(`  数据模式：${USE_TURSO ? 'Turso 云数据库' : '本地 SQLite（data/habits.db）'}`);
+    console.log(`  本机访问： http://localhost:${PORT}`);
+    console.log(`  局域网：  http://${lan}:${PORT}  （手机需连同一 Wi-Fi）`);
+    console.log(`  AI 周总结：${DEEPSEEK_API_KEY ? '已启用' : '未配置 DEEPSEEK_API_KEY（可后补）'}`);
+    console.log('  按 Ctrl+C 停止服务。');
+    console.log('');
+    if (OPEN_BROWSER) {
+      const url = `http://localhost:${PORT}`;
+      if (process.platform === 'win32') {
+        spawn('cmd', ['/c', 'start', '', url], { detached: true, stdio: 'ignore' }).unref();
+      } else {
+        spawn('xdg-open', [url], { detached: true, stdio: 'ignore' }).unref();
+      }
+    }
+  });
+}
+
+const isMain = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  startLocalServer().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
